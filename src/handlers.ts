@@ -1,7 +1,11 @@
 import { Message, User, ParseMode } from "node-telegram-bot-api";
 import { bot } from "./bot";
-import { addNewUser, checkUserExists, getPodcasters, getUserData } from "./utils";
-
+import {
+  addNewUser,
+  checkUserExists,
+  getPodcasters,
+  getUserData,
+} from "./utils";
 
 export const handleStartCommand = async (msg: Message) => {
   const userId = msg.from?.id;
@@ -47,7 +51,6 @@ export const handleStartCommand = async (msg: Message) => {
   }
 };
 
-
 export const handleContact = async (msg: any) => {
   const userId = msg.from?.id;
   const phoneNumber = msg.contact?.phone_number;
@@ -64,10 +67,9 @@ export const handleContact = async (msg: any) => {
   }
 };
 
-
 export const main = async (chatId: number, userData: User) => {
   const welcomeMessage = "heyyy";
-  await bot.sendPhoto(
+  const message = await bot.sendPhoto(
     chatId,
     "https://images.pexels.com/photos/1054713/pexels-photo-1054713.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
     {
@@ -81,8 +83,8 @@ export const main = async (chatId: number, userData: User) => {
       },
     }
   );
+  return message.message_id;
 };
-
 
 export const handleCallbackQuery = async (query: any) => {
   const userId = query.from.id;
@@ -90,34 +92,38 @@ export const handleCallbackQuery = async (query: any) => {
   const action = query.data;
 
   if (chatId) {
-    await bot.sendMessage(chatId, "⏳ Please wait... fetching data...");
-  }
+    // Delete the current message before sending the new one
+    await bot.deleteMessage(chatId, query.message?.message_id!);
 
-  if (action === "set_podcast") {
-    const userData = await getUserData(userId);
-    if (userData && chatId) {
-      await bot.sendMessage(
-        chatId,
-        `🔧 Now, let's set up your podcast, ${query.from.username}!`
-      );
+    // Send a new message based on the action clicked
+    if (action === "set_podcast") {
+      const userData = await getUserData(userId);
+      if (userData && chatId) {
+        await bot.sendMessage(
+          chatId,
+          `🔧 Now, let's set up your podcast, ${query.from.username}!`
+        );
+      }
     }
-  }
 
-  if (action === "view_podcasters") {
-    const podcasters = await getPodcasters();
-    if (podcasters && podcasters.length > 0 && chatId) {
-      const podcasterNames = podcasters.map((p: any) => p.username).join("\n");
-      await bot.sendMessage(
-        chatId,
-        `Here are some podcasters you can check out: \n${podcasterNames}`
-      );
-    } else if (chatId) {
-      await bot.sendMessage(
-        chatId,
-        "❌ No podcasters found. Please try again later."
-      );
+    if (action === "view_podcasters") {
+      const podcasters = await getPodcasters();
+      if (podcasters && podcasters.length > 0 && chatId) {
+        const podcasterNames = podcasters
+          .map((p: any) => p.username)
+          .join("\n");
+        await bot.sendMessage(
+          chatId,
+          `Here are some podcasters you can check out: \n${podcasterNames}`
+        );
+      } else if (chatId) {
+        await bot.sendMessage(
+          chatId,
+          "❌ No podcasters found. Please try again later."
+        );
+      }
     }
-  }
 
-  bot.answerCallbackQuery(query.id);
+    bot.answerCallbackQuery(query.id);
+  }
 };
