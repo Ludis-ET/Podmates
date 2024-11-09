@@ -3,7 +3,7 @@ import { KeyboardButton, ReplyKeyboardMarkup } from "telegraf/types";
 import * as firebaseAdmin from "firebase-admin";
 import * as dotenv from "dotenv";
 
-import { addNewUser, checkUserExists, getUserData } from "./main"; 
+import { addNewUser, checkUserExists, getUserData } from "./utils/auth"; 
 
 dotenv.config();
 
