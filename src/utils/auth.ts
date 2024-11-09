@@ -21,7 +21,3 @@ export const getUserData = async (userId: number) => {
   return userDoc.data();
 };
 
-export const getPodcasters = async () => {
-  const podcastersSnapshot = await db.collection("podcasters").get();
-  return podcastersSnapshot.docs.map((doc) => doc.data());
-};

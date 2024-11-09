@@ -10,5 +10,8 @@ export {
   addNewUser,
   checkUserExists,
   getUserData,
-  getPodcasters,
 } from "./auth";
+
+export {
+  getPodcasters,
+} from "./podcast";
