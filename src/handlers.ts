@@ -7,6 +7,7 @@ import {
   getUserData,
 } from "./utils";
 
+// Handle /start command to greet the user and prompt for phone number if new
 export const handleStartCommand = async (msg: Message) => {
   const userId = msg.from?.id;
   const username = msg.from?.username;
@@ -51,6 +52,7 @@ export const handleStartCommand = async (msg: Message) => {
   }
 };
 
+// Handle contact sharing when user provides phone number
 export const handleContact = async (msg: any) => {
   const userId = msg.from?.id;
   const phoneNumber = msg.contact?.phone_number;
@@ -67,6 +69,7 @@ export const handleContact = async (msg: any) => {
   }
 };
 
+// Main function to send the initial photo and inline keyboard
 export const main = async (chatId: number, userData: User) => {
   const welcomeMessage = "heyyy";
   const message = await bot.sendPhoto(
@@ -83,17 +86,19 @@ export const main = async (chatId: number, userData: User) => {
       },
     }
   );
-  return message.message_id;
+  return message; // Return the full message object, not just message_id
 };
 
+// Handle callback query from inline buttons, processing user actions
 export const handleCallbackQuery = async (query: any) => {
   const userId = query.from.id;
   const chatId = query.message?.chat.id;
   const action = query.data;
+  const messageId = query.message?.message_id;
 
-  if (chatId) {
+  if (chatId && messageId) {
     // Delete the current message before sending the new one
-    await bot.deleteMessage(chatId, query.message?.message_id!);
+    await bot.deleteMessage(chatId, messageId);
 
     // Send a new message based on the action clicked
     if (action === "set_podcast") {
@@ -124,6 +129,7 @@ export const handleCallbackQuery = async (query: any) => {
       }
     }
 
+    // Acknowledge the callback query to remove the loading indicator
     bot.answerCallbackQuery(query.id);
   }
 };
