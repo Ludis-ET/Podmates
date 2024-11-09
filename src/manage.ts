@@ -5,6 +5,7 @@ import {
   storePodcastInfo,
   deletePodcastInfo,
   uploadLogoToCloudinary,
+  requestPodcastInfo,
 } from "./podcast";
 
 export const managePodcast = async (query: any) => {
@@ -54,78 +55,11 @@ const handleEditPodcast = async (userId: number, podcastName: string) => {
   const podcast = userPodcasts.find(({ name }) => name === podcastName);
 
   if (podcast) {
-    const podcastDoc = await db.collection("podcasts").doc(podcast.id).get();
-    const podcastData = podcastDoc.data();
-
-    if (podcastData) {
-      await bot.sendMessage(
-        userId,
-        `You are about to edit the podcast: ${podcastData.name}`
-      );
-
-      const updatedData: any = {};
-
-      const newName = await askUser(
-        userId,
-        `Current name: ${podcastData.name}. Enter a new name (or leave blank to keep):`
-      );
-      if (newName.trim() !== "") updatedData.name = newName;
-
-      const newDescription = await askUser(
-        userId,
-        `Current description: ${podcastData.description}. Enter a new description (or leave blank to keep):`
-      );
-      if (newDescription.trim() !== "")
-        updatedData.description = newDescription;
-
-      const newGenre = await askUser(
-        userId,
-        `Current genre: ${podcastData.genre}. Enter a new genre (or leave blank to keep):`
-      );
-      if (newGenre.trim() !== "") updatedData.genre = newGenre;
-
-      const newEpisodesPerSeason = await askUser(
-        userId,
-        `Current episodes per season: ${podcastData.episodesPerSeason}. Enter a new number (or leave blank to keep):`
-      );
-      if (newEpisodesPerSeason.trim() !== "")
-        updatedData.episodesPerSeason = newEpisodesPerSeason;
-
-      const updateLogo = await askUser(
-        userId,
-        "Do you want to update the podcast logo? (yes/no)"
-      );
-      if (updateLogo.toLowerCase() === "yes") {
-        const newLogoFileId = await askUser(
-          userId,
-          "Please upload your new podcast logo:"
-        );
-        updatedData.logo = await uploadLogoToCloudinary(newLogoFileId);
-      }
-
-      if (Object.keys(updatedData).length > 0) {
-        await db.collection("podcasts").doc(podcast.id).update(updatedData);
-        await bot.sendMessage(
-          userId,
-          `Podcast "${podcastData.name}" has been successfully updated!`
-        );
-      } else {
-        await bot.sendMessage(
-          userId,
-          `No changes were made to the podcast "${podcastData.name}".`
-        );
-      }
-    } else {
-      await bot.sendMessage(
-        userId,
-        `Error: Podcast "${podcastName}" not found in Firestore.`
-      );
-    }
-  } else {
     await bot.sendMessage(
       userId,
-      `Error: Podcast "${podcastName}" not found in your list.`
+      `You are about to edit the podcast: ${podcast.name}`
     );
+    await requestPodcastInfo(userId, podcast.id);
   }
 };
 

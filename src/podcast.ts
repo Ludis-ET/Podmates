@@ -34,7 +34,7 @@ export const uploadLogoToCloudinary = async (photoFileId: string) => {
   });
 };
 
-const requestPodcastInfo = async (userId: number) => {
+export const requestPodcastInfo = async (userId: number, roomId?: string) => {
   const steps = [
     {
       message: "Please enter the name of your podcast:",
@@ -80,13 +80,23 @@ const requestPodcastInfo = async (userId: number) => {
         : userResponse;
   }
 
-  await storePodcastInfo(userId, podcastData);
-  await bot.sendMessage(
-    userId,
-    "Your podcast has been successfully shared! Thank you!"
-  );
+  if (roomId) {
+    await db.collection("podcasts").doc(roomId).update(podcastData);
+    await bot.sendMessage(
+      userId,
+      "Your podcast has been updated successfully!"
+    );
+  } else {
+    await storePodcastInfo(userId, podcastData);
+    await bot.sendMessage(
+      userId,
+      "Your podcast has been successfully shared! Thank you!"
+    );
+  }
+
   await sharePodcasts(userId);
 };
+
 
 const askUser = (userId: number, message: string, type = "text") => {
   return new Promise<string>((resolve) => {
