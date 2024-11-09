@@ -1,6 +1,9 @@
 import { bot } from "./bot";
-import { handleStartCommand, handleContact } from "./handlers";
-import { handleCallbackQuery } from "./main";
+import {
+  handleStartCommand,
+  handleContact,
+  handleCallbackQuery,
+} from "./handlers";
 
 // Listen for /start command
 bot.onText(/\/start/, handleStartCommand);
