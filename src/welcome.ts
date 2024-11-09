@@ -1,5 +1,5 @@
 import { Telegraf } from "telegraf";
-import { KeyboardButton, ReplyKeyboardMarkup } from "telegraf/types";
+import { KeyboardButton, ReplyKeyboardMarkup, User } from "telegraf/types";
 import * as firebaseAdmin from "firebase-admin";
 import * as dotenv from "dotenv";
 
@@ -19,8 +19,8 @@ if (firebaseAdmin.apps.length === 0) {
   firebaseAdmin.app();
 }
 
-const db = firebaseAdmin.firestore();
-const bot = new Telegraf(TELEGRAM_API_TOKEN);
+export const db = firebaseAdmin.firestore();
+export const bot = new Telegraf(TELEGRAM_API_TOKEN);
 
 // /start command handler
 bot.start(async (ctx) => {
@@ -68,7 +68,7 @@ bot.start(async (ctx) => {
         );
 
         // Call the main function to show user data and proceed
-        await main(ctx, userData);
+        await main(ctx, userData as User);
       } else {
         const message = `Welcome back, ${username}!\n\nWe noticed you haven't shared your phone number yet. Please do so to complete your registration.`;
 
@@ -106,7 +106,7 @@ bot.on("contact", async (ctx) => {
     );
 
     const userData = await getUserData(userId);
-    await main(ctx, userData);
+    await main(ctx, userData as User);
   }
 });
 

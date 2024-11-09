@@ -1,9 +1,9 @@
 import * as admin from "firebase-admin";
+import { db } from "../welcome";
 
 admin.initializeApp({
   credential: admin.credential.cert(require("../../firebase.json")),
 });
-const db = admin.firestore();
 
 export async function checkUserExists(userId: number): Promise<boolean> {
   const userRef = db.collection("users").doc(userId.toString());
