@@ -103,7 +103,7 @@ bot.on("contact", async (ctx) => {
     );
 
     const userData = await getUserData(userId);
-    await main(ctx, userData); // Call main function to continue the flow after registration
+    await main(ctx, userData);
   }
 });
 
