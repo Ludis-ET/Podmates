@@ -1,5 +1,5 @@
 import { bot } from "../bot";
-import { handleGetStarted } from "../handlers";
+import { handleGetStarted, handleBackHome } from "../handlers";
 import { clearChatHistory } from "../utils";
 
 export const CALLBACK_ACTIONS = {
@@ -16,6 +16,7 @@ export const handleCallbackQuery = async (query: any) => {
   const action = query.data;
   const chatId = query.message?.chat.id;
   const messageId = query.message?.message_id;
+  
 
   if (!chatId) return;
   const handleInvalidAction = async () => {
@@ -28,6 +29,12 @@ export const handleCallbackQuery = async (query: any) => {
       await clearChatHistory(chatId, messagesToDelete);
       await handleGetStarted(userId, messagesToDelete);
       break;
+
+    case CALLBACK_ACTIONS.HOME:
+      await clearChatHistory(chatId, messagesToDelete);
+      await handleBackHome(userId);
+      break;
+
     default:
       await handleInvalidAction();
       break;

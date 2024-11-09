@@ -18,7 +18,7 @@ export const main = async (
   try {
     await clearChatHistory(chatId, messagesToDelete);
 
-    const welcomeMessage = `Heyyy ${userData?.first_name}! 🖐🏽
+    const welcomeMessage = `Heyyy ${userData?.username}! 🖐🏽
 
 I’m here to help you discover the best Ethiopian tech podcasts 🎙️. Get ready to explore, rate, and listen to amazing episodes from inspiring creators! 🚀🇪🇹
 
@@ -31,7 +31,6 @@ What’s next?
       inline_keyboard: [
         [{ text: "🎙️ Share a Podcast", callback_data: "share_podcast" }],
         [{ text: "🎧 Discover Podcasts", callback_data: "discover_podcasts" }],
-        [{ text: "🏠 Back to Home", callback_data: "back_home" }],
       ],
     };
 
