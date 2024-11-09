@@ -59,8 +59,11 @@ export const handleCallbackQuery = async (query: any) => {
   const userId = query.from.id;
   const chatId = query.message?.chat.id;
   const action = query.data;
+  const messageId = query.message?.message_id;
 
   if (chatId) {
+    const messagesToDelete: number[] = []; // Array to store message IDs to be deleted
+
     if (action === "get_started") {
       const userExists = await checkUserExists(userId);
 
@@ -71,11 +74,14 @@ export const handleCallbackQuery = async (query: any) => {
           one_time_keyboard: true,
           resize_keyboard: true,
         };
-        await bot.sendMessage(userId, message, { reply_markup: keyboard });
+        const sentMessage = await bot.sendMessage(userId, message, {
+          reply_markup: keyboard,
+        });
+        messagesToDelete.push(sentMessage.message_id);
       } else {
         const userData = await getUserData(userId);
         if (userData?.phone_number) {
-          await main(userId, userData as BotUser);
+          await main(userId, userData as BotUser, messagesToDelete); // Pass the messagesToDelete array
         } else {
           const message = `We noticed you haven't shared your phone number yet. Please do so to complete your registration.`;
           const keyboard = {
@@ -83,9 +89,17 @@ export const handleCallbackQuery = async (query: any) => {
             one_time_keyboard: true,
             resize_keyboard: true,
           };
-          await bot.sendMessage(userId, message, { reply_markup: keyboard });
+          const sentMessage = await bot.sendMessage(userId, message, {
+            reply_markup: keyboard,
+          });
+          messagesToDelete.push(sentMessage.message_id);
         }
       }
+    }
+
+    // Delete all messages in messagesToDelete
+    for (const msgId of messagesToDelete) {
+      await bot.deleteMessage(chatId, msgId);
     }
 
     bot.answerCallbackQuery(query.id);
@@ -104,13 +118,18 @@ export const handleContact = async (msg: any) => {
       "Thank you for sharing your phone number! You are now successfully registered."
     );
     const userData = await getUserData(userId);
-    await main(userId, userData as BotUser);
+    await main(userId, userData as BotUser, []); // Clear messages on registration
   }
 };
 
-export const main = async (chatId: number, userData: BotUser) => {
+
+export const main = async (
+  chatId: number,
+  userData: BotUser,
+  messagesToDelete: number[]
+) => {
   try {
-    await clearChatHistory(chatId);
+    await clearChatHistory(chatId, messagesToDelete);
 
     const welcomeMessage = `Welcome to the Ethiopian Tech Community! 🎉
 
@@ -137,6 +156,7 @@ Tap below to begin your journey!`;
     });
 
     storeSentMessage(chatId, newMessage.message_id);
+    messagesToDelete.push(newMessage.message_id);
 
     return newMessage;
   } catch (error) {
