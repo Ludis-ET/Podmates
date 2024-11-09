@@ -1,4 +1,4 @@
-import { User } from "node-telegram-bot-api";
+import { Message, User } from "node-telegram-bot-api";
 import { bot } from "../bot";
 import {
   addNewUser,
@@ -11,6 +11,49 @@ import { main } from "./main";
 export interface BotUser extends User {
   phone_number: string;
 }
+
+export const generateWelcomeMessage = (username: string) => {
+  return `Hey ${username}! 🎉
+
+Welcome to the Ethiopian Tech Community! 🎙️
+
+I'm here to help you discover the best tech podcasts, listen to previous episodes, and explore the latest ones. 🚀🇪🇹
+
+What’s next?
+- Discover new podcasts 🎧
+- Rate your favorite podcasts ⭐
+- Listen to previous episodes 🔄
+
+Tap below to get started!`;
+};
+
+export const handleStartCommand = async (msg: Message) => {
+  const userId = msg.from?.id;
+  const username = msg.from?.username;
+
+  if (userId && username) {
+    const welcomeMessage = generateWelcomeMessage(username);
+
+    const keyboard = {
+      inline_keyboard: [
+        [{ text: "🎧 Get Started", callback_data: "get_started" }],
+      ],
+    };
+
+    try {
+      await bot.sendPhoto(
+        userId,
+        "https://images.pexels.com/photos/270288/pexels-photo-270288.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
+        {
+          caption: welcomeMessage,
+          reply_markup: keyboard,
+        }
+      );
+    } catch (error) {
+      console.error("Error sending message:", error);
+    }
+  }
+};
 
 export const handleGetStarted = async (
   userId: number,

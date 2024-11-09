@@ -1,8 +1,8 @@
 import { bot } from "./bot";
-import { handleGetStarted, handleContact } from "./handlers";
+import { handleStartCommand, handleContact } from "./handlers";
 import { handleCallbackQuery } from "./service";
 
-bot.onText(/\/start/, handleGetStarted);
+bot.onText(/\/start/, handleStartCommand);
 
 bot.on("contact", handleContact);
 

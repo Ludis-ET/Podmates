@@ -1,7 +1,1 @@
-export {
-  handleGetStarted,
-  handleSharePodcast,
-  handleDiscoverPodcasts,
-  handleBackHome,
-  handleContact,
-} from "./welcome";
+export { handleGetStarted, handleContact, handleStartCommand } from "./welcome";
