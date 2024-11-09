@@ -4,4 +4,4 @@ export {
   handleDiscoverPodcasts,
   handleBackHome,
   handleContact,
-} from "./handlers";
+} from "./welcome";
