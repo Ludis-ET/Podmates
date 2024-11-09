@@ -3,7 +3,8 @@ import { KeyboardButton, ReplyKeyboardMarkup } from "telegraf/types";
 import * as firebaseAdmin from "firebase-admin";
 import * as dotenv from "dotenv";
 
-import { addNewUser, checkUserExists, getUserData } from "./utils/auth"; 
+import { addNewUser, checkUserExists, getUserData } from "./utils/auth";
+import { main } from "./scripts/main";
 
 dotenv.config();
 
@@ -64,8 +65,8 @@ bot.start(async (ctx) => {
           `Welcome back, ${username}! Your phone number is already registered.`
         );
 
-        // Pass the user data to main.ts for further handling
-        await ctx.reply(`Here is your data: ${JSON.stringify(userData)}`);
+        // Call the main function to show user data and proceed
+        await main(ctx, userData);
       } else {
         const message = `Welcome back, ${username}!\n\nWe noticed you haven't shared your phone number yet. Please do so to complete your registration.`;
 
@@ -102,7 +103,7 @@ bot.on("contact", async (ctx) => {
     );
 
     const userData = await getUserData(userId);
-    await ctx.reply(`Your data: ${JSON.stringify(userData)}`);
+    await main(ctx, userData); // Call main function to continue the flow after registration
   }
 });
 
