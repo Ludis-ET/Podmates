@@ -7,6 +7,7 @@ import {
   clearChatHistory,
   storeSentMessage,
 } from "./utils";
+import { sharePodcasts } from "./podcast";
 
 interface BotUser extends User {
   phone_number: string;
@@ -95,6 +96,8 @@ export const handleCallbackQuery = async (query: any) => {
           messagesToDelete.push(sentMessage.message_id);
         }
       }
+    } else if (action === "share_podcast") {
+      sharePodcasts(userId);
     }
     await bot.deleteMessage(chatId, messageId);
 
@@ -126,7 +129,7 @@ export const main = async (
   try {
     await clearChatHistory(chatId, messagesToDelete);
 
-    const welcomeMessage = `Welcome to the Ethiopian Tech Community! 🎉
+    const welcomeMessage = `Heyyy ${userData?.first_name}! 🖐🏽
 
 I'm here to help you discover the best Ethiopian tech podcasts 🎙️. Get ready to explore, rate, and listen to amazing episodes from inspiring creators! 🚀🇪🇹
 
@@ -135,13 +138,25 @@ What’s next?
 - Rate your favorite podcasts ⭐
 - Listen to previous episodes 🔄`;
 
-    const keyboard = undefined;
+    const keyboard = {
+      inline_keyboard: [
+        [{ text: "🎙️ Share a Podcast", callback_data: "share_podcast" }],
+        [{ text: "🎧 Discover Podcasts", callback_data: "discover_podcasts" }],
+      ],
+    };
 
-    const newMessage = await bot.sendMessage(chatId, welcomeMessage, {
-      reply_markup: keyboard,
-    });
+    const newMessage = await bot.sendPhoto(
+      chatId,
+      "https://images.pexels.com/photos/7586662/pexels-photo-7586662.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
+      {
+        caption: welcomeMessage,
+        reply_markup: keyboard,
+      }
+    );
+
     return newMessage;
   } catch (error) {
     console.error("Error clearing chat history or sending message:", error);
   }
 };
+
