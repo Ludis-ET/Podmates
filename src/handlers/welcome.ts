@@ -75,14 +75,14 @@ export const handleGetStarted = async (
   } else {
     const userData = await getUserData(userId);
     if (userData?.phone_number) {
-      await bot.sendMessage(
+      const sent = await bot.sendMessage(
         userId,
         "Thank you! You are now successfully registered.",
         {
           reply_markup: { remove_keyboard: true },
         }
       );
-
+      messagesToDelete.push(sent.message_id);
       await main(userId, userData as BotUser, messagesToDelete);
     } else {
       const message = `We noticed you haven't shared your phone number yet. Please do so to complete your registration.`;
