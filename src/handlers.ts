@@ -7,52 +7,84 @@ import {
   getUserData,
 } from "./utils";
 
-// Handle /start command to greet the user and prompt for phone number if new
+interface BotUser extends User {
+  phone_number: string;
+}
+
 export const handleStartCommand = async (msg: Message) => {
   const userId = msg.from?.id;
   const username = msg.from?.username;
 
   if (userId && username) {
-    const userExists = await checkUserExists(userId);
+    const welcomeMessage = `Welcome, ${username}! 🎉
 
-    if (!userExists) {
-      const quote = `"Success is not the key to happiness. Happiness is the key to success." - Albert Schweitzer`;
-      const welcomeMessage = `Welcome, ${username}!\n\n${quote}`;
-      const keyboard = {
-        keyboard: [[{ text: "Share Phone Number", request_contact: true }]],
-        one_time_keyboard: true,
-        resize_keyboard: true,
-      };
-      await bot.sendPhoto(
-        userId,
-        "https://images.pexels.com/photos/270288/pexels-photo-270288.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
-        {
-          caption: welcomeMessage,
-          reply_markup: keyboard,
-        }
-      );
-    } else {
-      const userData = await getUserData(userId);
-      if (userData?.phone_number) {
-        await bot.sendMessage(
-          userId,
-          `Welcome back, ${username}! Your phone number is already registered.`
-        );
-        await main(userId, userData as User);
-      } else {
-        const message = `Welcome back, ${username}!\n\nWe noticed you haven't shared your phone number yet. Please do so to complete your registration.`;
+**I’m here to help you discover the best Ethiopian Tech Community podcasts** 🎙️, where you'll get insights on tech, startups, and everything in between! 🇪🇹
+
+**Let’s get started** 🚀 and explore the latest in Ethiopian tech podcasts. I’m excited to help you manage your profile and connect with the community! 👩‍💻👨‍💻
+
+Tap below to begin your journey!`;
+
+    const keyboard = {
+      inline_keyboard: [
+        [{ text: "🎧 Get Started", callback_data: "get_started" }],
+      ],
+    };
+
+    await bot.sendPhoto(
+      userId,
+      "https://images.pexels.com/photos/270288/pexels-photo-270288.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
+      {
+        caption: welcomeMessage,
+        reply_markup: keyboard,
+      }
+    );
+  }
+};
+
+
+export const handleCallbackQuery = async (query: any) => {
+  const userId = query.from.id;
+  const chatId = query.message?.chat.id;
+  const action = query.data;
+  const messageId = query.message?.message_id;
+
+  if (chatId && messageId) {
+    if (action === "get_started") {
+      const userExists = await checkUserExists(userId);
+
+      if (!userExists) {
+        const message = `We need your phone number to complete your registration.`;
         const keyboard = {
           keyboard: [[{ text: "Share Phone Number", request_contact: true }]],
           one_time_keyboard: true,
           resize_keyboard: true,
         };
         await bot.sendMessage(userId, message, { reply_markup: keyboard });
+      } else {
+        const userData = await getUserData(userId);
+        if (userData?.phone_number) {
+          await bot.sendMessage(
+            userId,
+            `Welcome back! Your phone number is already registered.`
+          );
+          await main(userId, userData as BotUser);
+        } else {
+          const message = `We noticed you haven't shared your phone number yet. Please do so to complete your registration.`;
+          const keyboard = {
+            keyboard: [[{ text: "Share Phone Number", request_contact: true }]],
+            one_time_keyboard: true,
+            resize_keyboard: true,
+          };
+          await bot.sendMessage(userId, message, { reply_markup: keyboard });
+        }
       }
     }
+
+    await bot.deleteMessage(chatId, messageId);
+    bot.answerCallbackQuery(query.id);
   }
 };
 
-// Handle contact sharing when user provides phone number
 export const handleContact = async (msg: any) => {
   const userId = msg.from?.id;
   const phoneNumber = msg.contact?.phone_number;
@@ -65,71 +97,24 @@ export const handleContact = async (msg: any) => {
       "Thank you for sharing your phone number! You are now successfully registered."
     );
     const userData = await getUserData(userId);
-    await main(userId, userData as User);
+    await main(userId, userData as BotUser);
   }
 };
 
-// Main function to send the initial photo and inline keyboard
-export const main = async (chatId: number, userData: User) => {
+export const main = async (chatId: number, userData: BotUser) => {
   const welcomeMessage = "heyyy";
-  const message = await bot.sendPhoto(
-    chatId,
-    "https://images.pexels.com/photos/1054713/pexels-photo-1054713.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
-    {
-      caption: welcomeMessage,
-      parse_mode: "MarkdownV2" as ParseMode,
-      reply_markup: {
+  const keyboard = userData?.phone_number
+    ? undefined
+    : {
         inline_keyboard: [
           [{ text: "🎙️ Set Your Podcast", callback_data: "set_podcast" }],
           [{ text: "👀 View Podcasters", callback_data: "view_podcasters" }],
         ],
-      },
-    }
-  );
-  return message; // Return the full message object, not just message_id
-};
+      };
 
-// Handle callback query from inline buttons, processing user actions
-export const handleCallbackQuery = async (query: any) => {
-  const userId = query.from.id;
-  const chatId = query.message?.chat.id;
-  const action = query.data;
-  const messageId = query.message?.message_id;
-
-  if (chatId && messageId) {
-    // Delete the current message before sending the new one
-    await bot.deleteMessage(chatId, messageId);
-
-    // Send a new message based on the action clicked
-    if (action === "set_podcast") {
-      const userData = await getUserData(userId);
-      if (userData && chatId) {
-        await bot.sendMessage(
-          chatId,
-          `🔧 Now, let's set up your podcast, ${query.from.username}!`
-        );
-      }
-    }
-
-    if (action === "view_podcasters") {
-      const podcasters = await getPodcasters();
-      if (podcasters && podcasters.length > 0 && chatId) {
-        const podcasterNames = podcasters
-          .map((p: any) => p.username)
-          .join("\n");
-        await bot.sendMessage(
-          chatId,
-          `Here are some podcasters you can check out: \n${podcasterNames}`
-        );
-      } else if (chatId) {
-        await bot.sendMessage(
-          chatId,
-          "❌ No podcasters found. Please try again later."
-        );
-      }
-    }
-
-    // Acknowledge the callback query to remove the loading indicator
-    bot.answerCallbackQuery(query.id);
-  }
+  const message = await bot.sendMessage(chatId, welcomeMessage, {
+    parse_mode: "MarkdownV2" as ParseMode,
+    reply_markup: keyboard,
+  });
+  return message;
 };
