@@ -1,7 +1,35 @@
+import { bot } from "./bot";
 import { db } from "./firebase";
-import { User } from "node-telegram-bot-api";
 
-// Add new user to Firebase
+
+interface SentMessage {
+  chatId: number;
+  messageId: number;
+}
+
+let sentMessages: SentMessage[] = [];
+
+export const storeSentMessage = (chatId: number, messageId: number) => {
+  sentMessages.push({ chatId, messageId });
+};
+
+export const getChatHistory = (chatId: number): SentMessage[] => {
+  return sentMessages.filter((msg) => msg.chatId === chatId);
+};
+
+export const clearChatHistory = async (chatId: number) => {
+  const history = getChatHistory(chatId);
+  for (const msg of history) {
+    try {
+      await bot.deleteMessage(chatId, msg.messageId);
+    } catch (error) {
+      console.error("Error deleting message:", error);
+    }
+  }
+  sentMessages = sentMessages.filter((msg) => msg.chatId !== chatId);
+};
+
+
 export const addNewUser = async (
   userId: number,
   username: string,
@@ -14,19 +42,18 @@ export const addNewUser = async (
 };
 
 
-// Check if user exists in Firebase
 export const checkUserExists = async (userId: number) => {
   const userDoc = await db.collection("users").doc(String(userId)).get();
   return userDoc.exists;
 };
 
-// Get user data from Firebase
+
 export const getUserData = async (userId: number) => {
   const userDoc = await db.collection("users").doc(String(userId)).get();
   return userDoc.data();
 };
 
-// Get podcasters list from Firebase
+
 export const getPodcasters = async () => {
   const podcastersSnapshot = await db.collection("podcasters").get();
   return podcastersSnapshot.docs.map((doc) => doc.data());

@@ -1,10 +1,11 @@
-import { Message, User, ParseMode } from "node-telegram-bot-api";
+import { Message, User } from "node-telegram-bot-api";
 import { bot } from "./bot";
 import {
   addNewUser,
   checkUserExists,
-  getPodcasters,
   getUserData,
+  clearChatHistory,
+  storeSentMessage,
 } from "./utils";
 
 interface BotUser extends User {
@@ -26,7 +27,6 @@ What’s next?
 Tap below to get started!`;
 };
 
-
 export const handleStartCommand = async (msg: Message) => {
   const userId = msg.from?.id;
   const username = msg.from?.username;
@@ -41,7 +41,7 @@ export const handleStartCommand = async (msg: Message) => {
     };
 
     try {
-      const response = await bot.sendPhoto(
+      await bot.sendPhoto(
         userId,
         "https://images.pexels.com/photos/270288/pexels-photo-270288.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
         {
@@ -59,9 +59,8 @@ export const handleCallbackQuery = async (query: any) => {
   const userId = query.from.id;
   const chatId = query.message?.chat.id;
   const action = query.data;
-  const messageId = query.message?.message_id;
 
-  if (chatId && messageId) {
+  if (chatId) {
     if (action === "get_started") {
       const userExists = await checkUserExists(userId);
 
@@ -76,10 +75,6 @@ export const handleCallbackQuery = async (query: any) => {
       } else {
         const userData = await getUserData(userId);
         if (userData?.phone_number) {
-          await bot.sendMessage(
-            userId,
-            `Welcome back! Your phone number is already registered.`
-          );
           await main(userId, userData as BotUser);
         } else {
           const message = `We noticed you haven't shared your phone number yet. Please do so to complete your registration.`;
@@ -93,7 +88,6 @@ export const handleCallbackQuery = async (query: any) => {
       }
     }
 
-    await bot.deleteMessage(chatId, messageId);
     bot.answerCallbackQuery(query.id);
   }
 };
@@ -115,19 +109,37 @@ export const handleContact = async (msg: any) => {
 };
 
 export const main = async (chatId: number, userData: BotUser) => {
-  const welcomeMessage = "heyyy";
-  const keyboard = userData?.phone_number
-    ? undefined
-    : {
-        inline_keyboard: [
-          [{ text: "🎙️ Set Your Podcast", callback_data: "set_podcast" }],
-          [{ text: "👀 View Podcasters", callback_data: "view_podcasters" }],
-        ],
-      };
+  try {
+    await clearChatHistory(chatId);
 
-  const message = await bot.sendMessage(chatId, welcomeMessage, {
-    parse_mode: "MarkdownV2" as ParseMode,
-    reply_markup: keyboard,
-  });
-  return message;
+    const welcomeMessage = `Welcome to the Ethiopian Tech Community! 🎉
+
+I'm here to help you discover the best Ethiopian tech podcasts 🎙️. Get ready to explore, rate, and listen to amazing episodes from inspiring creators! 🚀🇪🇹
+
+What’s next?
+- Discover new podcasts 🎧
+- Rate your favorite podcasts ⭐
+- Listen to previous episodes 🔄
+
+Tap below to begin your journey!`;
+
+    const keyboard = userData?.phone_number
+      ? undefined
+      : {
+          inline_keyboard: [
+            [{ text: "🎙️ Set Your Podcast", callback_data: "set_podcast" }],
+            [{ text: "👀 View Podcasters", callback_data: "view_podcasters" }],
+          ],
+        };
+
+    const newMessage = await bot.sendMessage(chatId, welcomeMessage, {
+      reply_markup: keyboard,
+    });
+
+    storeSentMessage(chatId, newMessage.message_id);
+
+    return newMessage;
+  } catch (error) {
+    console.error("Error clearing chat history or sending message:", error);
+  }
 };
