@@ -62,7 +62,7 @@ export const handleCallbackQuery = async (query: any) => {
   const messageId = query.message?.message_id;
 
   if (chatId) {
-    const messagesToDelete: number[] = []; // Array to store message IDs to be deleted
+    const messagesToDelete: number[] = [];
 
     if (action === "get_started") {
       const userExists = await checkUserExists(userId);
@@ -81,7 +81,7 @@ export const handleCallbackQuery = async (query: any) => {
       } else {
         const userData = await getUserData(userId);
         if (userData?.phone_number) {
-          await main(userId, userData as BotUser, messagesToDelete); // Pass the messagesToDelete array
+          await main(userId, userData as BotUser, messagesToDelete);
         } else {
           const message = `We noticed you haven't shared your phone number yet. Please do so to complete your registration.`;
           const keyboard = {
@@ -96,11 +96,7 @@ export const handleCallbackQuery = async (query: any) => {
         }
       }
     }
-
-    // Delete all messages in messagesToDelete
-    for (const msgId of messagesToDelete) {
-      await bot.deleteMessage(chatId, msgId);
-    }
+    await bot.deleteMessage(chatId, messageId);
 
     bot.answerCallbackQuery(query.id);
   }
@@ -113,15 +109,14 @@ export const handleContact = async (msg: any) => {
 
   if (userId && phoneNumber && username) {
     await addNewUser(userId, username, phoneNumber);
-    await bot.sendMessage(
+    const m = await bot.sendMessage(
       userId,
       "Thank you for sharing your phone number! You are now successfully registered."
     );
     const userData = await getUserData(userId);
-    await main(userId, userData as BotUser, []); // Clear messages on registration
+    await main(userId, userData as BotUser, [m.message_id, msg.message_id]);
   }
 };
-
 
 export const main = async (
   chatId: number,
@@ -138,26 +133,13 @@ I'm here to help you discover the best Ethiopian tech podcasts 🎙️. Get read
 What’s next?
 - Discover new podcasts 🎧
 - Rate your favorite podcasts ⭐
-- Listen to previous episodes 🔄
+- Listen to previous episodes 🔄`;
 
-Tap below to begin your journey!`;
-
-    const keyboard = userData?.phone_number
-      ? undefined
-      : {
-          inline_keyboard: [
-            [{ text: "🎙️ Set Your Podcast", callback_data: "set_podcast" }],
-            [{ text: "👀 View Podcasters", callback_data: "view_podcasters" }],
-          ],
-        };
+    const keyboard = undefined;
 
     const newMessage = await bot.sendMessage(chatId, welcomeMessage, {
       reply_markup: keyboard,
     });
-
-    storeSentMessage(chatId, newMessage.message_id);
-    messagesToDelete.push(newMessage.message_id);
-
     return newMessage;
   } catch (error) {
     console.error("Error clearing chat history or sending message:", error);
