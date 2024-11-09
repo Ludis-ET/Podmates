@@ -1,15 +1,19 @@
-import { Telegraf } from "telegraf";
-import { KeyboardButton, ReplyKeyboardMarkup, User } from "telegraf/types";
+import {
+  KeyboardButton,
+  ReplyKeyboardMarkup,
+  Message,
+  User,
+} from "node-telegram-bot-api";
 import * as dotenv from "dotenv";
 import * as firebaseAdmin from "firebase-admin";
 
 import { addNewUser, checkUserExists, getUserData } from "./utils";
 import { main } from "./scripts";
+import { bot } from "./bot";
 
 dotenv.config();
 
-const TELEGRAM_API_TOKEN = process.env.TELEGRAM_API_TOKEN!;
-
+// Firebase initialization
 if (!firebaseAdmin.apps.length) {
   const serviceAccount = require("../firebase.json");
   firebaseAdmin.initializeApp({
@@ -19,12 +23,13 @@ if (!firebaseAdmin.apps.length) {
 
 export const db = firebaseAdmin.firestore();
 
-export const bot = new Telegraf(TELEGRAM_API_TOKEN);
-
-// /start command handler
-bot.start(async (ctx) => {
-  const userId = ctx.from?.id;
-  const username = ctx.from?.username;
+/**
+ * Handles the /start command to initiate user registration and welcome message.
+ * Checks if the user is already registered; if not, prompts for phone number.
+ */
+bot.onText(/\/start/, async (msg: Message) => {
+  const userId = msg.from?.id;
+  const username = msg.from?.username;
 
   if (userId && username) {
     const userExists = await checkUserExists(userId);
@@ -46,10 +51,9 @@ bot.start(async (ctx) => {
         resize_keyboard: true,
       };
 
-      await ctx.replyWithPhoto(
-        {
-          url: "https://images.pexels.com/photos/270288/pexels-photo-270288.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
-        },
+      await bot.sendPhoto(
+        userId,
+        "https://images.pexels.com/photos/270288/pexels-photo-270288.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
         {
           caption: welcomeMessage,
           reply_markup: keyboard,
@@ -59,11 +63,18 @@ bot.start(async (ctx) => {
       const userData = await getUserData(userId);
 
       if (userData?.phone_number) {
-        await ctx.reply(
+        await bot.sendMessage(
+          userId,
           `Welcome back, ${username}! Your phone number is already registered.`
         );
-
-        await main(ctx, userData as User);
+        if (userData) {
+          await main(userId, userData as User); 
+        } else {
+          await bot.sendMessage(
+            userId,
+            "❌ Oops! Something went wrong while fetching your data."
+          );
+        }
       } else {
         const message = `Welcome back, ${username}!\n\nWe noticed you haven't shared your phone number yet. Please do so to complete your registration.`;
 
@@ -80,40 +91,39 @@ bot.start(async (ctx) => {
           resize_keyboard: true,
         };
 
-        await ctx.reply(message, { reply_markup: keyboard });
+        await bot.sendMessage(userId, message, { reply_markup: keyboard });
       }
     }
   }
 });
 
 
-// Handle phone number sharing
-bot.on("contact", async (ctx) => {
-  const userId = ctx.from?.id;
-  const phoneNumber = ctx.message?.contact?.phone_number;
-  const username = ctx.from?.username;
+
+/**
+ * Handles phone number sharing to complete user registration.
+ * Adds the user's phone number to the database and confirms registration.
+ */
+bot.on("contact", async (msg) => {
+  const userId = msg.from?.id;
+  const phoneNumber = msg.contact?.phone_number;
+  const username = msg.from?.username;
 
   if (userId && phoneNumber && username) {
     await addNewUser(userId, username, phoneNumber);
-
-    await ctx.reply(
+    await bot.sendMessage(
+      userId,
       "Thank you for sharing your phone number! You are now successfully registered."
     );
 
     const userData = await getUserData(userId);
-    await main(ctx, userData as User);
+    await main(userId, userData as User); 
   }
 });
 
-// Start the bot
-bot
-  .launch()
-  .then(() => {
-    console.log("Bot is running...");
-  })
-  .catch((err) => {
-    console.error("Error launching bot:", err);
-  });
 
-process.once("SIGINT", () => bot.stop("SIGINT"));
-process.once("SIGTERM", () => bot.stop("SIGTERM"));
+
+// Handle stopping the bot on termination signals
+process.once("SIGINT", () => bot.stopPolling());
+process.once("SIGTERM", () => bot.stopPolling());
+
+console.log("Bot is running...");
