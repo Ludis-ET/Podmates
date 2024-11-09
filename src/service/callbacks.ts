@@ -1,4 +1,6 @@
 import { bot } from "../bot";
+import { handleGetStarted } from "../handlers";
+import { clearChatHistory } from "../utils";
 
 export const CALLBACK_ACTIONS = {
   GET_STARTED: "get_started",
@@ -19,8 +21,13 @@ export const handleCallbackQuery = async (query: any) => {
   const handleInvalidAction = async () => {
     await bot.sendMessage(userId, "Invalid action! Please try again.");
   };
+  const messagesToDelete: number[] = [];
 
   switch (action) {
+    case CALLBACK_ACTIONS.GET_STARTED:
+      await clearChatHistory(chatId, messagesToDelete);
+      await handleGetStarted(userId, messagesToDelete);
+      break;
     default:
       await handleInvalidAction();
       break;
