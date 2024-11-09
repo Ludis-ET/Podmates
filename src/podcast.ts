@@ -1,7 +1,7 @@
 import { bot } from "./bot";
 import { db, storage } from "./firebase";
 
-const getUserPodcasts = async (userId: number) => {
+export const getUserPodcasts = async (userId: number) => {
   const snapshot = await db
     .collection("podcasts")
     .where("userId", "==", userId)
@@ -13,13 +13,13 @@ const getUserPodcasts = async (userId: number) => {
   }));
 };
 
-const storePodcastInfo = async (userId: number, podcastData: any) => {
+export const storePodcastInfo = async (userId: number, podcastData: any) => {
   await db
     .collection("podcasts")
     .add({ userId, ...podcastData, createdAt: new Date() });
 };
 
-const uploadLogoToCloudinary = async (photoFileId: string) => {
+export const uploadLogoToCloudinary = async (photoFileId: string) => {
   const fileLink = await bot.getFileLink(photoFileId);
   const response = await fetch(fileLink);
   const buffer = await response.arrayBuffer();
@@ -89,7 +89,7 @@ const requestPodcastInfo = async (userId: number) => {
 };
 
 const askUser = (userId: number, message: string, type = "text") => {
-  return new Promise((resolve) => {
+  return new Promise<string>((resolve) => {
     bot.sendMessage(userId, message);
 
     const handleResponse = (msg: any) => {
@@ -155,5 +155,25 @@ export const managePodcast = async (query: any) => {
 
   if (podcast) {
     await bot.sendMessage(userId, `Managing the podcast: ${podcast.name}`);
+  }
+};
+
+export const deletePodcastInfo = async (podcastId: string, logoUrl: string) => {
+  try {
+    const publicId = logoUrl.split("/").pop()?.split(".")[0];
+
+    await db.collection("podcasts").doc(podcastId).delete();
+    console.log(
+      `Podcast with ID ${podcastId} deleted successfully from Firestore.`
+    );
+
+    if (publicId) {
+      await storage.uploader.destroy(publicId);
+      console.log(
+        `Podcast logo with ID ${publicId} deleted successfully from Cloudinary.`
+      );
+    }
+  } catch (error) {
+    console.error("Error deleting podcast:", error);
   }
 };

@@ -15,8 +15,7 @@
     "dotenv": "^16.4.5",
     "firebase-admin": "^12.7.0",
     "markdown-it": "^14.1.0",
-    "node-telegram-bot-api": "^0.66.0",
-    "telegraf": "^4.16.3"
+    "node-telegram-bot-api": "^0.66.0"
   },
   "devDependencies": {
     "@types/markdown-it": "^14.1.2",
