@@ -97,7 +97,6 @@ export const requestPodcastInfo = async (userId: number, roomId?: string) => {
   await sharePodcasts(userId);
 };
 
-
 const askUser = (userId: number, message: string, type = "text") => {
   return new Promise<string>((resolve) => {
     bot.sendMessage(userId, message);
@@ -121,11 +120,21 @@ const askUser = (userId: number, message: string, type = "text") => {
 export const sharePodcasts = async (userId: number) => {
   const userPodcasts = await getUserPodcasts(userId);
 
+  // Prepare the buttons
+  const homeButton = {
+    text: "🏠 Home",
+    callback_data: "home",
+  };
+
   if (userPodcasts.length > 0) {
     const buttons = userPodcasts.map(({ name }) => ({
       text: name,
       callback_data: `manage_podcast_${name}`,
     }));
+
+    // Add Home button as the last button
+    buttons.push(homeButton);
+
     await bot.sendMessage(userId, "Select a podcast to manage:", {
       reply_markup: { inline_keyboard: [buttons] },
     });
@@ -142,12 +151,14 @@ export const sharePodcasts = async (userId: number) => {
                 callback_data: "share_podcast_info",
               },
             ],
+            [homeButton], // Home button added here
           ],
         },
       }
     );
   }
 };
+
 
 export const handlePodcastInfoCallback = async (query: any) => {
   if (query.data === "share_podcast_info") {
@@ -164,7 +175,19 @@ export const managePodcast = async (query: any) => {
   const podcast = userPodcasts.find(({ name }) => name === podcastName);
 
   if (podcast) {
-    await bot.sendMessage(userId, `Managing the podcast: ${podcast.name}`);
+    const buttons = [
+      {
+        text: "✏️ Edit Podcast Info",
+        callback_data: `edit_podcast_${podcast.id}`,
+      },
+      {
+        text: "🗑️ Delete Podcast",
+        callback_data: `delete_podcast_${podcast.id}`,
+      },
+    ];
+    await bot.sendMessage(userId, `Managing podcast: ${podcast.name}`, {
+      reply_markup: { inline_keyboard: [buttons] },
+    });
   }
 };
 
@@ -187,3 +210,21 @@ export const deletePodcastInfo = async (podcastId: string, logoUrl: string) => {
     console.error("Error deleting podcast:", error);
   }
 };
+
+export const handleCallbackQuery = async (query: any) => {
+  const [action, podcastId] = query.data.split("_");
+  const userId = query.from.id;
+
+  if (action === "edit_podcast") {
+    await requestPodcastInfo(userId, podcastId); // Update podcast info
+  }
+
+  if (action === "delete_podcast") {
+    const podcast = await db.collection("podcasts").doc(podcastId).get();
+    const logoUrl = podcast.data()?.logo || "";
+    await deletePodcastInfo(podcastId, logoUrl);
+    await bot.sendMessage(userId, "Podcast deleted successfully!");
+  }
+};
+
+bot.on("callback_query", handleCallbackQuery);

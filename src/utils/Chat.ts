@@ -1,5 +1,4 @@
-import { bot } from "./bot";
-import { db } from "./firebase";
+import { bot } from "../bot";
 
 interface SentMessage {
   chatId: number;
@@ -40,7 +39,6 @@ export const clearChatHistory = async (
   sentMessages = sentMessages.filter((msg) => msg.chatId !== chatId);
   userMessages = userMessages.filter((msg) => msg.userId !== chatId);
 
-  // Clear the messages passed in the messagesToDelete array
   for (const messageId of messagesToDelete) {
     try {
       await bot.deleteMessage(chatId, messageId);
@@ -48,30 +46,4 @@ export const clearChatHistory = async (
       console.error("Error deleting specific message:", error);
     }
   }
-};
-
-export const addNewUser = async (
-  userId: number,
-  username: string,
-  phoneNumber: string
-) => {
-  await db.collection("users").doc(String(userId)).set({
-    username,
-    phone_number: phoneNumber,
-  });
-};
-
-export const checkUserExists = async (userId: number) => {
-  const userDoc = await db.collection("users").doc(String(userId)).get();
-  return userDoc.exists;
-};
-
-export const getUserData = async (userId: number) => {
-  const userDoc = await db.collection("users").doc(String(userId)).get();
-  return userDoc.data();
-};
-
-export const getPodcasters = async () => {
-  const podcastersSnapshot = await db.collection("podcasters").get();
-  return podcastersSnapshot.docs.map((doc) => doc.data());
 };
