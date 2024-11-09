@@ -5,8 +5,6 @@ import { User } from "telegraf/types";
 import { getUserData, getPodcasters } from "../utils";
 import { bot } from "../welcome";
 
-
-
 export const main = async (ctx: Context, userData: User) => {
   const welcomeMessage = `
     *Welcome back, ${userData.username}!* 🙌
@@ -50,15 +48,13 @@ export const main = async (ctx: Context, userData: User) => {
   );
 };
 
-
-
 console.log(bot);
 // Handle button clicks
 bot.on("callback_query", async (ctx) => {
   const userId = ctx.from?.id;
   const action = (ctx.callbackQuery as any).data;
 
-  // loading message 
+  // loading message
   await ctx.reply("⏳ Please wait... fetching data...");
 
   if (action === "set_podcast") {
@@ -79,7 +75,7 @@ bot.on("callback_query", async (ctx) => {
 
   if (action === "view_podcasters") {
     setTimeout(async () => {
-      const podcasters = await getPodcasters(); 
+      const podcasters = await getPodcasters();
 
       if (podcasters && podcasters.length > 0) {
         const podcasterNames = podcasters
