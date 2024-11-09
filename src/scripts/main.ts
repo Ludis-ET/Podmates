@@ -2,8 +2,7 @@ import { Context } from "telegraf";
 import { ParseMode } from "telegraf/typings/core/types/typegram";
 import { User } from "telegraf/types";
 
-import { getUserData } from "../utils/auth";
-import { getPodcasters } from "../utils/podcast";
+import { getUserData, getPodcasters } from "../utils";
 import { bot } from "../welcome";
 
 
@@ -54,7 +53,7 @@ export const main = async (ctx: Context, userData: User) => {
     formattedMessage
   );
 };
-
+console.log(bot);
 // Handle button clicks
 bot.on("callback_query", async (ctx) => {
   const userId = ctx.from?.id;

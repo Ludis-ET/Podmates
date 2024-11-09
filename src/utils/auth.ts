@@ -1,5 +1,5 @@
 import * as admin from "firebase-admin";
-import { db } from "../welcome";
+import { db } from "../firebase";
 
 admin.initializeApp({
   credential: admin.credential.cert(require("../../firebase.json")),

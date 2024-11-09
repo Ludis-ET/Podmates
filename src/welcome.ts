@@ -1,25 +1,15 @@
 import { Telegraf } from "telegraf";
 import { KeyboardButton, ReplyKeyboardMarkup, User } from "telegraf/types";
-import * as firebaseAdmin from "firebase-admin";
 import * as dotenv from "dotenv";
 
-import { addNewUser, checkUserExists, getUserData } from "./utils/auth";
-import { main } from "./scripts/main";
+import { addNewUser, checkUserExists, getUserData } from "./utils";
+import { main } from "./scripts";
 
 dotenv.config();
 
 const TELEGRAM_API_TOKEN = process.env.TELEGRAM_API_TOKEN!;
 
-if (firebaseAdmin.apps.length === 0) {
-  const serviceAccount = require("../firebase.json");
-  firebaseAdmin.initializeApp({
-    credential: firebaseAdmin.credential.cert(serviceAccount),
-  });
-} else {
-  firebaseAdmin.app();
-}
 
-export const db = firebaseAdmin.firestore();
 export const bot = new Telegraf(TELEGRAM_API_TOKEN);
 
 // /start command handler
