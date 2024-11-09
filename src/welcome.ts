@@ -31,6 +31,7 @@ bot.start(async (ctx) => {
     const userExists = await checkUserExists(userId);
 
     if (!userExists) {
+      // User is not registered, show the "Share Phone Number" button
       const quote = `"Success is not the key to happiness. Happiness is the key to success." - Albert Schweitzer`;
       const welcomeMessage = `Welcome, ${username}!\n\n${quote}`;
 
@@ -58,6 +59,7 @@ bot.start(async (ctx) => {
         }
       );
     } else {
+      // User is registered, no need to show the button
       const userData = await getUserData(userId);
 
       if (userData?.phone_number) {
@@ -88,6 +90,7 @@ bot.start(async (ctx) => {
     }
   }
 });
+
 
 // Handle phone number sharing
 bot.on("contact", async (ctx) => {
