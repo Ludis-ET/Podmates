@@ -8,9 +8,6 @@ import { bot } from "../welcome";
 
 
 export const main = async (ctx: Context, userData: User) => {
-
-  
-// Send a welcoming message with the options
   const welcomeMessage = `
     *Welcome back, ${userData.username}!* 🙌
 
@@ -45,7 +42,6 @@ export const main = async (ctx: Context, userData: User) => {
     },
   };
 
-  // Send the message with options
   await ctx.replyWithPhoto(
     {
       url: "https://images.pexels.com/photos/1054713/pexels-photo-1054713.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
@@ -53,22 +49,23 @@ export const main = async (ctx: Context, userData: User) => {
     formattedMessage
   );
 };
+
+
+
 console.log(bot);
 // Handle button clicks
 bot.on("callback_query", async (ctx) => {
   const userId = ctx.from?.id;
   const action = (ctx.callbackQuery as any).data;
 
-  // Show loading message when button is clicked
+  // loading message 
   await ctx.reply("⏳ Please wait... fetching data...");
 
   if (action === "set_podcast") {
-    // Simulate loading for "Set Your Podcast" action
     setTimeout(async () => {
       const userData = await getUserData(userId);
 
       if (userData) {
-        // Send user-specific content once data is fetched
         await ctx.reply(
           `🔧 Now, let's set up your podcast, ${ctx.from?.username}!`
         );
@@ -77,16 +74,14 @@ bot.on("callback_query", async (ctx) => {
           "❌ Oops! Something went wrong while fetching your data."
         );
       }
-    }, 2000); // Simulate a 2-second delay
+    }, 2000);
   }
 
   if (action === "view_podcasters") {
-    // Simulate loading for "View Podcasters" action
     setTimeout(async () => {
-      const podcasters = await getPodcasters(); // Fetch data from Firestore or another source
+      const podcasters = await getPodcasters(); 
 
       if (podcasters && podcasters.length > 0) {
-        // Display a list of podcasters after loading
         const podcasterNames = podcasters
           .map((p: any) => p.username)
           .join("\n");
@@ -96,9 +91,8 @@ bot.on("callback_query", async (ctx) => {
       } else {
         await ctx.reply("❌ No podcasters found. Please try again later.");
       }
-    }, 2000); // Simulate a 2-second delay
+    }, 2000);
   }
 
-  // Acknowledge the callback to remove the loading state
   ctx.answerCbQuery();
 });

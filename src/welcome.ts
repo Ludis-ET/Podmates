@@ -21,7 +21,6 @@ bot.start(async (ctx) => {
     const userExists = await checkUserExists(userId);
 
     if (!userExists) {
-      // User is not registered, show the "Share Phone Number" button
       const quote = `"Success is not the key to happiness. Happiness is the key to success." - Albert Schweitzer`;
       const welcomeMessage = `Welcome, ${username}!\n\n${quote}`;
 
@@ -38,7 +37,6 @@ bot.start(async (ctx) => {
         resize_keyboard: true,
       };
 
-      // Ask for phone number if user is not registered
       await ctx.replyWithPhoto(
         {
           url: "https://images.pexels.com/photos/270288/pexels-photo-270288.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
@@ -49,7 +47,6 @@ bot.start(async (ctx) => {
         }
       );
     } else {
-      // User is registered, no need to show the button
       const userData = await getUserData(userId);
 
       if (userData?.phone_number) {
@@ -57,7 +54,6 @@ bot.start(async (ctx) => {
           `Welcome back, ${username}! Your phone number is already registered.`
         );
 
-        // Call the main function to show user data and proceed
         await main(ctx, userData as User);
       } else {
         const message = `Welcome back, ${username}!\n\nWe noticed you haven't shared your phone number yet. Please do so to complete your registration.`;

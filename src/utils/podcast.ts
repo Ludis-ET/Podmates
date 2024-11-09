@@ -1,4 +1,4 @@
-import { db } from "../welcome";
+import { db } from "../firebase";
 
 export const getPodcasters = async () => {
   try {
