@@ -12,6 +12,4 @@ export {
   getUserData,
 } from "./auth";
 
-export {
-  getPodcasters,
-} from "./podcast";
+export { getUserPodcasts } from "./podcast";

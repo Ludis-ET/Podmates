@@ -1,6 +1,13 @@
 import { db } from "../firebase";
 
-export const getPodcasters = async () => {
-  const podcastersSnapshot = await db.collection("podcasters").get();
-  return podcastersSnapshot.docs.map((doc) => doc.data());
+export const getUserPodcasts = async (userId: number) => {
+  const snapshot = await db
+    .collection("podcasts")
+    .where("userId", "==", userId)
+    .get();
+  return snapshot.docs.map((doc) => ({
+    id: doc.id,
+    name: doc.data().name,
+    ...doc.data(),
+  }));
 };

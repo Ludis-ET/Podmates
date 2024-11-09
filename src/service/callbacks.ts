@@ -1,6 +1,5 @@
 import { bot } from "../bot";
-import { handleGetStarted, handleBackHome } from "../handlers";
-import { sharePodcasts } from "../podcast";
+import { handleGetStarted, handleBackHome, sharePodcasts } from "../handlers";
 import { clearChatHistory } from "../utils";
 
 export const CALLBACK_ACTIONS = {
