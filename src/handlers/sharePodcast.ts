@@ -33,8 +33,8 @@ export const sharePodcasts = async (userId: number) => {
 
   if (userPodcasts.length > 0) {
     const buttons = userPodcasts.map(({ name }) => ({
-      text: name,
-      callback_data: `manage_podcast_${name}`,
+      text: name.name,
+      callback_data: `manage_podcast_${name.id}`,
     }));
 
     buttons.push(homeButton);
@@ -112,21 +112,64 @@ export const requestPodcastInfo = async (userId: number, roomId?: string) => {
     },
   ];
 
+  if (roomId) {
+    const podcastDoc = await db.collection("podcasts").doc(roomId).get();
+    const podcastData = podcastDoc.data();
+    if (!podcastData) {
+      await bot.sendMessage(userId, "Podcast not found.");
+      return;
+    }
+
+    const podcastInfoMessage = `Here is the current information for your podcast:
+    Name: ${podcastData.name}
+    Description: ${podcastData.description}
+    Genre: ${podcastData.genre}
+    Episodes per Season: ${podcastData.episodesPerSeason}`;
+
+    await bot.sendPhoto(userId, podcastData.logo);
+    await bot.sendMessage(userId, podcastInfoMessage, {
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: "Edit Podcast", callback_data: "edit_podcast" },
+            { text: "Delete Podcast", callback_data: "delete_podcast" },
+          ],
+        ],
+      },
+    });
+    return;
+  }
+
   const podcastData: any = {};
   for (const step of steps) {
     let userResponse;
+    const skipButton = {
+      text: "Skip (Don't Change)",
+      callback_data: `skip_${step.key}`,
+    };
+
     do {
+      const keyboard = {
+        inline_keyboard: [
+          [{ text: "Skip (Don't Change)", callback_data: `skip_${step.key}` }],
+        ],
+      };
+
       userResponse = await askUser(userId, step.message, step.type);
       if (step.validate && !step.validate(userResponse as string)) {
         await bot.sendMessage(userId, "Invalid input. Please try again.");
         userResponse = null;
+      } else {
+        podcastData[step.key] =
+          step.type === "photo"
+            ? await uploadLogoToCloudinary(userResponse as string)
+            : userResponse;
       }
-    } while (!userResponse);
 
-    podcastData[step.key] =
-      step.type === "photo"
-        ? await uploadLogoToCloudinary(userResponse as string)
-        : userResponse;
+      await bot.sendMessage(userId, "Press 'Skip' to keep the current value.", {
+        reply_markup: keyboard,
+      });
+    } while (!userResponse);
   }
 
   if (roomId) {

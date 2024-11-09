@@ -6,4 +6,6 @@ export {
 
 export { handleBackHome } from "./main";
 
-export { sharePodcasts } from "./sharePodcast";
+export { sharePodcasts,
+  requestPodcastInfo,
+ } from "./sharePodcast";

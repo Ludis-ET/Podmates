@@ -1,5 +1,11 @@
 import { bot } from "../bot";
-import { handleGetStarted, handleBackHome, sharePodcasts } from "../handlers";
+import { db } from "../firebase";
+import {
+  handleGetStarted,
+  handleBackHome,
+  sharePodcasts,
+  requestPodcastInfo,
+} from "../handlers";
 import { clearChatHistory } from "../utils";
 
 export const CALLBACK_ACTIONS = {
@@ -9,6 +15,8 @@ export const CALLBACK_ACTIONS = {
   HOME: "home",
   MANAGE_PODCAST: "manage_podcast",
   SHARE_PODCAST_INFO: "share_podcast_info",
+  EDIT_PODCAST: "edit_podcast",
+  DELETE_PODCAST: "delete_podcast",
 };
 
 export const handleCallbackQuery = async (query: any) => {
@@ -16,6 +24,7 @@ export const handleCallbackQuery = async (query: any) => {
   const action = query.data;
   const chatId = query.message?.chat.id;
   const messageId = query.message?.message_id;
+  const roomId = query.message?.text?.match(/roomId:\s*(\S+)/)?.[1];
   
 
   if (!chatId) return;
@@ -38,6 +47,24 @@ export const handleCallbackQuery = async (query: any) => {
     case CALLBACK_ACTIONS.SHARE_PODCAST:
       await clearChatHistory(chatId, messagesToDelete);
       await sharePodcasts(userId);
+      break;
+
+    case action.startsWith("manage_podcast_"):
+      const podcastId = action.slice(16);
+      console.log(podcastId);
+      await requestPodcastInfo(userId, podcastId);
+      break;
+
+    case CALLBACK_ACTIONS.EDIT_PODCAST:
+      await requestPodcastInfo(userId, roomId);
+      break;
+
+    case CALLBACK_ACTIONS.DELETE_PODCAST:
+      await db.collection("podcasts").doc(roomId).delete();
+      await bot.sendMessage(userId, "Your podcast has been deleted.");
+      break;
+
+    case action.startsWith("skip_") && action.slice(5):
       break;
 
     default:
