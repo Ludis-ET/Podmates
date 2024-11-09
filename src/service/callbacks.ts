@@ -31,13 +31,20 @@ export const handleCallbackQuery = async (query: any) => {
     await bot.sendMessage(userId, "Invalid action! Please try again.");
   };
   const messagesToDelete: number[] = [];
+if (action.startsWith("skip_")) {
+    const stepKey = action.slice(4);
+    await bot.sendMessage(userId, `You have skipped the ${stepKey} step. No changes will be made.`);
+    return;
+  }
+
+  if (action === "cancel_edit") {
+    await bot.sendMessage(userId, "You have canceled the operation. No changes were made.");
+    return; 
+  }
 
   if (action.startsWith("manage_podcast_")) {
     const podcastId = action.slice(15); 
-    console.log(podcastId);
     await requestPodcastInfo(userId, podcastId);
-  } else if (action.startsWith("skip_") && action.slice(5)){
-    return
   }
   
   else {

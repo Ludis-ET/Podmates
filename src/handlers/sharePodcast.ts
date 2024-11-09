@@ -82,6 +82,7 @@ const askUser = (userId: number, message: string, type = "text") => {
   });
 };
 
+
 export const requestPodcastInfo = async (userId: number, roomId?: string) => {
   const steps = [
     {
@@ -111,27 +112,31 @@ export const requestPodcastInfo = async (userId: number, roomId?: string) => {
     },
   ];
 
+  // Fetch existing podcast data if editing an existing podcast
+  let podcastData: any = {};
   if (roomId) {
     const podcastDoc = await db.collection("podcasts").doc(roomId).get();
-    const podcastData = podcastDoc.data();
-    if (!podcastData) {
+    const data = podcastDoc.data();
+    if (!data) {
       await bot.sendMessage(userId, "Podcast not found.");
       return;
     }
+    podcastData = data; // Store the current podcast data to compare and update
 
     const podcastInfoMessage = `Here is the current information for your podcast:
-    Name: ${podcastData.name}
-    Description: ${podcastData.description}
-    Genre: ${podcastData.genre}
-    Episodes per Season: ${podcastData.episodesPerSeason}`;
+      Name: ${data.name}
+      Description: ${data.description}
+      Genre: ${data.genre}
+      Episodes per Season: ${data.episodesPerSeason}`;
 
-    await bot.sendPhoto(userId, podcastData.logo);
+    await bot.sendPhoto(userId, data.logo);
     await bot.sendMessage(userId, podcastInfoMessage, {
       reply_markup: {
         inline_keyboard: [
           [
             { text: "Edit Podcast", callback_data: "edit_podcast" },
             { text: "Delete Podcast", callback_data: "delete_podcast" },
+            { text: "Home", callback_data: "home" },
           ],
         ],
       },
@@ -139,26 +144,42 @@ export const requestPodcastInfo = async (userId: number, roomId?: string) => {
     return;
   }
 
-  const podcastData: any = {};
+  // Collecting podcast info if it's a new podcast
   for (const step of steps) {
     let userResponse;
     const skipButton = {
       text: "Skip (Don't Change)",
       callback_data: `skip_${step.key}`,
     };
+    const cancelButton = {
+      text: "Cancel",
+      callback_data: "cancel_edit",
+    };
 
     do {
       const keyboard = {
         inline_keyboard: [
           [{ text: "Skip (Don't Change)", callback_data: `skip_${step.key}` }],
+          [{ text: "Cancel", callback_data: "cancel_edit" }],
         ],
       };
 
       userResponse = await askUser(userId, step.message, step.type);
+
+      if (userResponse === "cancel_edit") {
+        // Cancel the operation, discard changes
+        await bot.sendMessage(
+          userId,
+          "Operation canceled. No changes were made."
+        );
+        return;
+      }
+
       if (step.validate && !step.validate(userResponse as string)) {
         await bot.sendMessage(userId, "Invalid input. Please try again.");
         userResponse = null;
-      } else {
+      } else if (userResponse !== "skip") {
+        // Save the valid input only if it's not a skip
         podcastData[step.key] =
           step.type === "photo"
             ? await uploadLogoToCloudinary(userResponse as string)
@@ -171,6 +192,7 @@ export const requestPodcastInfo = async (userId: number, roomId?: string) => {
     } while (!userResponse);
   }
 
+  // If editing an existing podcast, update only the changed fields
   if (roomId) {
     await db.collection("podcasts").doc(roomId).update(podcastData);
     await bot.sendMessage(
@@ -178,6 +200,7 @@ export const requestPodcastInfo = async (userId: number, roomId?: string) => {
       "Your podcast has been updated successfully!"
     );
   } else {
+    // If adding a new podcast, store the data in Firestore
     await storePodcastInfo(userId, podcastData);
     await bot.sendMessage(
       userId,
