@@ -32,11 +32,10 @@ export const sharePodcasts = async (userId: number) => {
   };
 
   if (userPodcasts.length > 0) {
-    const buttons = userPodcasts.map(({ name }) => ({
-      text: name.name,
-      callback_data: `manage_podcast_${name.id}`,
+    const buttons = userPodcasts.map(({ name, id }) => ({
+      text: name,
+      callback_data: `manage_podcast_${id}`,
     }));
-
     buttons.push(homeButton);
 
     await bot.sendMessage(userId, "Select a podcast to manage:", {

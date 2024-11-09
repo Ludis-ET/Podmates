@@ -25,7 +25,6 @@ export const handleCallbackQuery = async (query: any) => {
   const chatId = query.message?.chat.id;
   const messageId = query.message?.message_id;
   const roomId = query.message?.text?.match(/roomId:\s*(\S+)/)?.[1];
-  
 
   if (!chatId) return;
   const handleInvalidAction = async () => {
@@ -33,43 +32,44 @@ export const handleCallbackQuery = async (query: any) => {
   };
   const messagesToDelete: number[] = [];
 
-  switch (action) {
-    case CALLBACK_ACTIONS.GET_STARTED:
-      await clearChatHistory(chatId, messagesToDelete);
-      await handleGetStarted(userId, messagesToDelete);
-      break;
+  if (action.startsWith("manage_podcast_")) {
+    const podcastId = action.slice(15); 
+    console.log(podcastId);
+    await requestPodcastInfo(userId, podcastId);
+  } else if (action.startsWith("skip_") && action.slice(5)){
+    return
+  }
+  
+  else {
+    switch (action) {
+      case CALLBACK_ACTIONS.GET_STARTED:
+        await clearChatHistory(chatId, messagesToDelete);
+        await handleGetStarted(userId, messagesToDelete);
+        break;
 
-    case CALLBACK_ACTIONS.HOME:
-      await clearChatHistory(chatId, messagesToDelete);
-      await handleBackHome(userId);
-      break;
+      case CALLBACK_ACTIONS.HOME:
+        await clearChatHistory(chatId, messagesToDelete);
+        await handleBackHome(userId);
+        break;
 
-    case CALLBACK_ACTIONS.SHARE_PODCAST:
-      await clearChatHistory(chatId, messagesToDelete);
-      await sharePodcasts(userId);
-      break;
+      case CALLBACK_ACTIONS.SHARE_PODCAST:
+        await clearChatHistory(chatId, messagesToDelete);
+        await sharePodcasts(userId);
+        break;
 
-    case action.startsWith("manage_podcast_"):
-      const podcastId = action.slice(16);
-      console.log(podcastId);
-      await requestPodcastInfo(userId, podcastId);
-      break;
+      case CALLBACK_ACTIONS.EDIT_PODCAST:
+        await requestPodcastInfo(userId, roomId);
+        break;
 
-    case CALLBACK_ACTIONS.EDIT_PODCAST:
-      await requestPodcastInfo(userId, roomId);
-      break;
+      case CALLBACK_ACTIONS.DELETE_PODCAST:
+        await db.collection("podcasts").doc(roomId).delete();
+        await bot.sendMessage(userId, "Your podcast has been deleted.");
+        break;
 
-    case CALLBACK_ACTIONS.DELETE_PODCAST:
-      await db.collection("podcasts").doc(roomId).delete();
-      await bot.sendMessage(userId, "Your podcast has been deleted.");
-      break;
-
-    case action.startsWith("skip_") && action.slice(5):
-      break;
-
-    default:
-      await handleInvalidAction();
-      break;
+      default:
+        await handleInvalidAction();
+        break;
+    }
   }
 
   if (messageId) {
@@ -78,3 +78,4 @@ export const handleCallbackQuery = async (query: any) => {
 
   bot.answerCallbackQuery(query.id);
 };
+
