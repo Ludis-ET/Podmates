@@ -4,8 +4,8 @@ import {
   handleGetStarted,
   handleBackHome,
   sharePodcasts,
-  requestPodcastInfo,
 } from "../handlers";
+import { addPodcast, editPodcast } from "../handlers/sharePodcast";
 import { clearChatHistory } from "../utils";
 
 export const CALLBACK_ACTIONS = {
@@ -31,23 +31,27 @@ export const handleCallbackQuery = async (query: any) => {
     await bot.sendMessage(userId, "Invalid action! Please try again.");
   };
   const messagesToDelete: number[] = [];
-if (action.startsWith("skip_")) {
+  if (action.startsWith("skip_")) {
     const stepKey = action.slice(4);
-    await bot.sendMessage(userId, `You have skipped the ${stepKey} step. No changes will be made.`);
+    await bot.sendMessage(
+      userId,
+      `You have skipped the ${stepKey} step. No changes will be made.`
+    );
     return;
   }
 
   if (action === "cancel_edit") {
-    await bot.sendMessage(userId, "You have canceled the operation. No changes were made.");
-    return; 
+    await bot.sendMessage(
+      userId,
+      "You have canceled the operation. No changes were made."
+    );
+    return;
   }
 
   if (action.startsWith("manage_podcast_")) {
-    const podcastId = action.slice(15); 
-    await requestPodcastInfo(userId, podcastId);
-  }
-  
-  else {
+    const podcastId = action.slice(15);
+    await editPodcast(userId, podcastId);
+  } else {
     switch (action) {
       case CALLBACK_ACTIONS.GET_STARTED:
         await clearChatHistory(chatId, messagesToDelete);
@@ -65,7 +69,7 @@ if (action.startsWith("skip_")) {
         break;
 
       case CALLBACK_ACTIONS.EDIT_PODCAST:
-        await requestPodcastInfo(userId, roomId);
+        await addPodcast(userId);
         break;
 
       case CALLBACK_ACTIONS.DELETE_PODCAST:
@@ -85,4 +89,3 @@ if (action.startsWith("skip_")) {
 
   bot.answerCallbackQuery(query.id);
 };
-

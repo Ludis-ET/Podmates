@@ -25,11 +25,7 @@ export const uploadLogoToCloudinary = async (photoFileId: string) => {
 
 export const sharePodcasts = async (userId: number) => {
   const userPodcasts = await getUserPodcasts(userId);
-
-  const homeButton = {
-    text: "🏠 Home",
-    callback_data: "home",
-  };
+  const homeButton = { text: "🏠 Home", callback_data: "home" };
 
   if (userPodcasts.length > 0) {
     const buttons = userPodcasts.map(({ name, id }) => ({
@@ -82,8 +78,7 @@ const askUser = (userId: number, message: string, type = "text") => {
   });
 };
 
-
-export const requestPodcastInfo = async (userId: number, roomId?: string) => {
+export const addPodcast = async (userId: number) => {
   const steps = [
     {
       message: "Please enter the name of your podcast:",
@@ -112,101 +107,121 @@ export const requestPodcastInfo = async (userId: number, roomId?: string) => {
     },
   ];
 
-  // Fetch existing podcast data if editing an existing podcast
   let podcastData: any = {};
-  if (roomId) {
-    const podcastDoc = await db.collection("podcasts").doc(roomId).get();
-    const data = podcastDoc.data();
-    if (!data) {
-      await bot.sendMessage(userId, "Podcast not found.");
-      return;
-    }
-    podcastData = data; // Store the current podcast data to compare and update
+  for (const step of steps) {
+    let userResponse;
+    do {
+      userResponse = await askUser(userId, step.message, step.type);
 
-    const podcastInfoMessage = `Here is the current information for your podcast:
-      Name: ${data.name}
-      Description: ${data.description}
-      Genre: ${data.genre}
-      Episodes per Season: ${data.episodesPerSeason}`;
+      if (step.validate && !step.validate(userResponse)) {
+        await bot.sendMessage(userId, "Invalid input. Please try again.");
+        userResponse = null;
+      }
+    } while (!userResponse);
 
-    await bot.sendPhoto(userId, data.logo);
-    await bot.sendMessage(userId, podcastInfoMessage, {
-      reply_markup: {
-        inline_keyboard: [
-          [
-            { text: "Edit Podcast", callback_data: "edit_podcast" },
-            { text: "Delete Podcast", callback_data: "delete_podcast" },
-            { text: "Home", callback_data: "home" },
-          ],
-        ],
-      },
-    });
+    podcastData[step.key] =
+      step.type === "photo"
+        ? await uploadLogoToCloudinary(userResponse)
+        : userResponse;
+  }
+
+  await storePodcastInfo(userId, podcastData);
+  await bot.sendMessage(
+    userId,
+    "Your podcast has been successfully shared! Thank you!"
+  );
+  await sharePodcasts(userId);
+};
+
+export const editPodcast = async (userId: number, roomId: string) => {
+  const podcastDoc = await db.collection("podcasts").doc(roomId).get();
+  const data = podcastDoc.data();
+  if (!data) {
+    await bot.sendMessage(userId, "Podcast not found.");
     return;
   }
 
-  // Collecting podcast info if it's a new podcast
-  for (const step of steps) {
-    let userResponse;
-    const skipButton = {
-      text: "Skip (Don't Change)",
-      callback_data: `skip_${step.key}`,
-    };
-    const cancelButton = {
-      text: "Cancel",
-      callback_data: "cancel_edit",
-    };
+  const steps = [
+    {
+      message: "Please enter the name of your podcast:",
+      key: "name",
+      validate: (input: string) => input.trim() !== "",
+    },
+    {
+      message: "Please upload your podcast logo (image).",
+      key: "logo",
+      type: "photo",
+    },
+    {
+      message: "Provide a brief description of your podcast:",
+      key: "description",
+      validate: (input: string) => input.trim().length > 10,
+    },
+    {
+      message: "Specify the genre (e.g., Tech, Business):",
+      key: "genre",
+      validate: (input: string) => input.trim() !== "",
+    },
+    {
+      message: "How many episodes are there in each season?",
+      key: "episodesPerSeason",
+      validate: (input: string) => !isNaN(Number(input)) && Number(input) > 0,
+    },
+  ];
 
-    do {
-      const keyboard = {
-        inline_keyboard: [
-          [{ text: "Skip (Don't Change)", callback_data: `skip_${step.key}` }],
-          [{ text: "Cancel", callback_data: "cancel_edit" }],
-        ],
+  for (const step of steps) {
+    let isSkipped = false;
+
+    await bot.sendMessage(
+      userId,
+      `Current value: ${data[step.key] ?? "Not set"}. You can skip this step.`,
+      {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: "Skip", callback_data: `skip_${step.key}` }],
+          ],
+        },
+      }
+    );
+
+    const callbackResponse = await new Promise<void>((resolve) => {
+      const callbackHandler = (query: any) => {
+        if (query.data === `skip_${step.key}` && query.from.id === userId) {
+          isSkipped = true;
+          bot.removeListener("callback_query", callbackHandler);
+          bot.answerCallbackQuery(query.id, { text: "Skipped!" });
+          resolve();
+        }
       };
 
+      bot.on("callback_query", callbackHandler);
+    });
+
+    if (isSkipped) continue;
+
+    let userResponse;
+    do {
       userResponse = await askUser(userId, step.message, step.type);
 
-      if (userResponse === "cancel_edit") {
-        // Cancel the operation, discard changes
-        await bot.sendMessage(
-          userId,
-          "Operation canceled. No changes were made."
-        );
-        return;
-      }
-
-      if (step.validate && !step.validate(userResponse as string)) {
+      if (step.validate && userResponse && !step.validate(userResponse)) {
         await bot.sendMessage(userId, "Invalid input. Please try again.");
         userResponse = null;
-      } else if (userResponse !== "skip") {
-        // Save the valid input only if it's not a skip
-        podcastData[step.key] =
-          step.type === "photo"
-            ? await uploadLogoToCloudinary(userResponse as string)
-            : userResponse;
       }
+    } while (!isSkipped && !userResponse);
 
-      await bot.sendMessage(userId, "Press 'Skip' to keep the current value.", {
-        reply_markup: keyboard,
-      });
-    } while (!userResponse);
+    data[step.key] =
+      step.type === "photo"
+        ? await uploadLogoToCloudinary(userResponse as string)
+        : userResponse;
   }
 
-  // If editing an existing podcast, update only the changed fields
-  if (roomId) {
-    await db.collection("podcasts").doc(roomId).update(podcastData);
-    await bot.sendMessage(
-      userId,
-      "Your podcast has been updated successfully!"
-    );
-  } else {
-    // If adding a new podcast, store the data in Firestore
-    await storePodcastInfo(userId, podcastData);
-    await bot.sendMessage(
-      userId,
-      "Your podcast has been successfully shared! Thank you!"
-    );
-  }
+  await db.collection("podcasts").doc(roomId).update(data);
+  await bot.sendMessage(userId, "Podcast updated successfully!");
+  await sharePodcasts(userId);
+};
 
+export const deletePodcast = async (userId: number, roomId: string) => {
+  await db.collection("podcasts").doc(roomId).delete();
+  await bot.sendMessage(userId, "Podcast deleted successfully!");
   await sharePodcasts(userId);
 };
