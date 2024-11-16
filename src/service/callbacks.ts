@@ -5,7 +5,7 @@ import {
   handleBackHome,
   sharePodcasts,
 } from "../handlers";
-import { addPodcast, editPodcast } from "../handlers/sharePodcast";
+import { addPodcast } from "../handlers/sharePodcast";
 import { clearChatHistory } from "../utils";
 
 export const CALLBACK_ACTIONS = {
@@ -50,7 +50,7 @@ export const handleCallbackQuery = async (query: any) => {
 
   if (action.startsWith("manage_podcast_")) {
     const podcastId = action.slice(15);
-    await editPodcast(userId, podcastId);
+    await sharePodcasts(userId);
   } else {
     switch (action) {
       case CALLBACK_ACTIONS.GET_STARTED:
