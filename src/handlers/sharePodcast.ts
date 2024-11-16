@@ -1,71 +1,47 @@
 import { bot } from "../bot";
-import { db, storage } from "../firebase";
 import { getUserPodcasts } from "../utils";
 
 export const sharePodcasts = async (userId: number) => {
-  const userPodcasts: {
-    id: string;
-    name: string;
-    logo: string;
-    description: string;
-    genre: string;
-    episodesPerSeason: number;
-  }[] = await getUserPodcasts(userId);
+  const userPodcasts = await getUserPodcasts(userId);
 
   const homeButton = { text: "🏠 Home", callback_data: "home" };
 
   if (userPodcasts.length > 0) {
-    const podcastListButtons = userPodcasts.map((podcast) => [
-      { text: `🎙️ ${podcast.name}`, callback_data: `view_${podcast.id}` },
-    ]);
+    for (const podcast of userPodcasts) {
+      const caption = `
+🎙️ ${podcast.name}
 
-    await bot.sendMessage(
-      userId,
-      "📚 *Your Podcasts:*\n\nSelect a podcast to view details or manage:",
-      {
-        parse_mode: "Markdown",
+📜 Description:  
+${truncate(podcast.description, 900)}
+
+📚 Genre: ${podcast.genre}
+🔢 Episodes/Season: ${podcast.episodesPerSeason}
+
+
+ ID: ${podcast.id} 
+
+> If you'd like to edit or delete, use the buttons below.
+`;
+
+      const maxLength = 1024;
+      const finalCaption =
+        caption.length > maxLength
+          ? `${caption.slice(0, maxLength)}...`
+          : caption;
+
+      await bot.sendPhoto(userId, podcast.logo, {
+        caption: finalCaption.trim(),
         reply_markup: {
-          inline_keyboard: [...podcastListButtons, [homeButton]],
+          inline_keyboard: [
+            [
+              { text: "✏️ Edit", callback_data: `edit_${podcast.id}` },
+              { text: "🗑️ Delete", callback_data: `delete_${podcast.id}` },
+            ],
+            [homeButton],
+          ],
         },
-      }
-    );
-
-    bot.on("callback_query", async (query) => {
-      if (query.from.id !== userId) return;
-
-      const data = query.data || "";
-      if (query.message) {
-        await bot.deleteMessage(userId, query.message.message_id);
-      }
-
-      if (data.startsWith("view_")) {
-        const podcastId = data.split("_")[1];
-        const selectedPodcast = userPodcasts.find((p) => p.id === podcastId);
-
-        if (selectedPodcast) {
-          await bot.sendPhoto(userId, selectedPodcast.logo, {
-            caption: `🎙️ ${selectedPodcast.name}\n\n📝 ${selectedPodcast.description}\n📚 Genre: ${selectedPodcast.genre}\n🔢 Episodes/Season: ${selectedPodcast.episodesPerSeason}`,
-            reply_markup: {
-              inline_keyboard: [
-                [
-                  {
-                    text: "✏️ Edit",
-                    callback_data: `edit_${selectedPodcast.id}`,
-                  },
-                  {
-                    text: "🗑️ Delete",
-                    callback_data: `delete_${selectedPodcast.id}`,
-                  },
-                ],
-                [homeButton],
-              ],
-            },
-          });
-        }
-      } else if (data === "home") {
-        await sharePodcasts(userId);
-      }
-    });
+      });
+    }
   } else {
     await bot.sendMessage(
       userId,
@@ -86,3 +62,6 @@ export const sharePodcasts = async (userId: number) => {
     );
   }
 };
+
+const truncate = (text: string, maxLength: number) =>
+  text.length > maxLength ? `${text.slice(0, maxLength)}...` : text;

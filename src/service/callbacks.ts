@@ -4,9 +4,9 @@ import {
   handleGetStarted,
   handleBackHome,
   sharePodcasts,
+  addPodcast,
 } from "../handlers";
-import { addPodcast } from "../handlers/sharePodcast";
-import { clearChatHistory } from "../utils";
+import { clearChatHistory, getUserPodcasts } from "../utils";
 
 export const CALLBACK_ACTIONS = {
   GET_STARTED: "get_started",
@@ -24,68 +24,99 @@ export const handleCallbackQuery = async (query: any) => {
   const action = query.data;
   const chatId = query.message?.chat.id;
   const messageId = query.message?.message_id;
-  const roomId = query.message?.text?.match(/roomId:\s*(\S+)/)?.[1];
 
   if (!chatId) return;
+
   const handleInvalidAction = async () => {
     await bot.sendMessage(userId, "Invalid action! Please try again.");
   };
-  const messagesToDelete: number[] = [];
-  if (action.startsWith("skip_")) {
-    const stepKey = action.slice(4);
-    await bot.sendMessage(
-      userId,
-      `You have skipped the ${stepKey} step. No changes will be made.`
-    );
-    return;
-  }
 
-  if (action === "cancel_edit") {
-    await bot.sendMessage(
-      userId,
-      "You have canceled the operation. No changes were made."
-    );
-    return;
-  }
-
-  if (action.startsWith("manage_podcast_")) {
-    const podcastId = action.slice(15);
-    await sharePodcasts(userId);
-  } else {
-    switch (action) {
-      case CALLBACK_ACTIONS.GET_STARTED:
-        await clearChatHistory(chatId, messagesToDelete);
-        await handleGetStarted(userId, messagesToDelete);
+  try {
+    switch (true) {
+      case action.startsWith("view_"): {
+        const podcastId = action.slice(5);
+        await handleViewPodcast(userId, podcastId);
         break;
+      }
 
-      case CALLBACK_ACTIONS.HOME:
-        await clearChatHistory(chatId, messagesToDelete);
+      case action === CALLBACK_ACTIONS.GET_STARTED: {
+        await clearChatHistory(chatId, []);
+        await handleGetStarted(userId, []);
+        break;
+      }
+
+      case action === CALLBACK_ACTIONS.HOME: {
+        await clearChatHistory(chatId, []);
         await handleBackHome(userId);
         break;
+      }
 
-      case CALLBACK_ACTIONS.SHARE_PODCAST:
-        await clearChatHistory(chatId, messagesToDelete);
+      case action === CALLBACK_ACTIONS.SHARE_PODCAST: {
         await sharePodcasts(userId);
         break;
+      }
 
-      case CALLBACK_ACTIONS.EDIT_PODCAST:
+      case action === CALLBACK_ACTIONS.EDIT_PODCAST: {
         await addPodcast(userId);
         break;
+      }
 
-      case CALLBACK_ACTIONS.DELETE_PODCAST:
-        await db.collection("podcasts").doc(roomId).delete();
-        await bot.sendMessage(userId, "Your podcast has been deleted.");
+      case action === CALLBACK_ACTIONS.DELETE_PODCAST: {
+        const roomId = query.message?.text?.match(/roomId:\s*(\S+)/)?.[1];
+        if (roomId) {
+          await db.collection("podcasts").doc(roomId).delete();
+          await bot.sendMessage(userId, "Your podcast has been deleted.");
+        } else {
+          await bot.sendMessage(userId, "Podcast not found. Please try again.");
+        }
         break;
+      }
 
-      default:
+      default: {
         await handleInvalidAction();
-        break;
+      }
     }
-  }
 
-  if (messageId) {
-    await bot.deleteMessage(chatId, messageId);
-  }
+    if (messageId) {
+      await bot.deleteMessage(chatId, messageId).catch((err) => {
+        console.error(
+          "Failed to delete message:",
+          err.response?.body?.description
+        );
+      });
+    }
 
-  bot.answerCallbackQuery(query.id);
+    await bot.answerCallbackQuery(query.id);
+  } catch (error) {
+    console.error("Error handling callback query:", error);
+    await bot.sendMessage(
+      userId,
+      "An error occurred while processing your request."
+    );
+  }
+};
+
+const handleViewPodcast = async (userId: number, podcastId: string) => {
+  const userPodcasts = await getUserPodcasts(userId);
+  const selectedPodcast = userPodcasts.find((p) => p.id === podcastId);
+
+  if (selectedPodcast) {
+    await bot.sendPhoto(userId, selectedPodcast.logo, {
+      caption: `🎙️ ${selectedPodcast.name}\n\n📝 ${selectedPodcast.description}\n📚 Genre: ${selectedPodcast.genre}\n🔢 Episodes/Season: ${selectedPodcast.episodesPerSeason}`,
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: "✏️ Edit", callback_data: `edit_${selectedPodcast.id}` },
+            {
+              text: "🗑️ Delete",
+              callback_data: `delete_${selectedPodcast.id}`,
+            },
+          ],
+          [{ text: "🏠 Home", callback_data: CALLBACK_ACTIONS.HOME }],
+        ],
+      },
+    });
+  } else {
+    await bot.sendMessage(userId, "Podcast not found. Please try again.");
+  }
 };
