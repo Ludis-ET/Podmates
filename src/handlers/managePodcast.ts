@@ -42,9 +42,7 @@ export const editPodcast = async (userId: number, roomId: string) => {
 
   const buttons = sections.map((section) => [
     {
-      text: `✏️ Edit ${capitalize(section.key)}: ${
-        data[section.key] ?? "Not set"
-      }`,
+      text: `✏️ Edit ${capitalize(section.key)}`,
       callback_data: `edit_${section.key}`,
     },
   ]);

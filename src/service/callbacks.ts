@@ -5,6 +5,7 @@ import {
   handleBackHome,
   sharePodcasts,
   addPodcast,
+  editPodcast,
 } from "../handlers";
 import { clearChatHistory, getUserPodcasts } from "../utils";
 
@@ -35,7 +36,7 @@ export const handleCallbackQuery = async (query: any) => {
     switch (true) {
       case action.startsWith("view_"): {
         const podcastId = action.slice(5);
-        await handleViewPodcast(userId, podcastId);
+        await sharePodcasts(userId);
         break;
       }
 
@@ -56,15 +57,16 @@ export const handleCallbackQuery = async (query: any) => {
         break;
       }
 
-      case action === CALLBACK_ACTIONS.EDIT_PODCAST: {
-        await addPodcast(userId);
+      case action.startsWith("edit_"): {
+        const podcastId = action.slice(5);
+        await editPodcast(userId, podcastId);
         break;
       }
 
       case action === CALLBACK_ACTIONS.DELETE_PODCAST: {
-        const roomId = query.message?.text?.match(/roomId:\s*(\S+)/)?.[1];
-        if (roomId) {
-          await db.collection("podcasts").doc(roomId).delete();
+        const podcastId = query.message?.text?.match(/ID:\s*(\S+)/)?.[1];
+        if (podcastId) {
+          await db.collection("podcasts").doc(podcastId).delete();
           await bot.sendMessage(userId, "Your podcast has been deleted.");
         } else {
           await bot.sendMessage(userId, "Podcast not found. Please try again.");
@@ -93,30 +95,5 @@ export const handleCallbackQuery = async (query: any) => {
       userId,
       "An error occurred while processing your request."
     );
-  }
-};
-
-const handleViewPodcast = async (userId: number, podcastId: string) => {
-  const userPodcasts = await getUserPodcasts(userId);
-  const selectedPodcast = userPodcasts.find((p) => p.id === podcastId);
-
-  if (selectedPodcast) {
-    await bot.sendPhoto(userId, selectedPodcast.logo, {
-      caption: `🎙️ ${selectedPodcast.name}\n\n📝 ${selectedPodcast.description}\n📚 Genre: ${selectedPodcast.genre}\n🔢 Episodes/Season: ${selectedPodcast.episodesPerSeason}`,
-      reply_markup: {
-        inline_keyboard: [
-          [
-            { text: "✏️ Edit", callback_data: `edit_${selectedPodcast.id}` },
-            {
-              text: "🗑️ Delete",
-              callback_data: `delete_${selectedPodcast.id}`,
-            },
-          ],
-          [{ text: "🏠 Home", callback_data: CALLBACK_ACTIONS.HOME }],
-        ],
-      },
-    });
-  } else {
-    await bot.sendMessage(userId, "Podcast not found. Please try again.");
   }
 };
