@@ -1,13 +1,14 @@
 from telegram import Update
 from telegram.ext import CommandHandler, CallbackContext
-from services.firebase_service import firestore
 
-def start(update: Update, context: CallbackContext):
+async def start(update: Update, context: CallbackContext):
+    hard_disk = context.bot_data['hard_disk']
+
     user = update.effective_user
     user_id = user.id
     username = user.username
 
-    user_ref = firestore.collection('users').document(str(user_id))
+    user_ref = hard_disk.collection('users').document(str(user_id))
     doc = user_ref.get()
 
     if not doc.exists:
@@ -19,6 +20,6 @@ def start(update: Update, context: CallbackContext):
                 'subscribed_podcasts': []
             }
         })
-        update.message.reply_text(f"Welcome, {username}! You are now subscribed to Podmates. You will receive notifications for upcoming podcasts.")
+        await update.message.reply_text(f"Welcome, {username}! You are now subscribed to Podmates. You will receive notifications for upcoming podcasts.")
     else:
-        update.message.reply_text(f"Welcome back, {username}! Ready to get started with the latest tech podcasts?")
+        await update.message.reply_text(f"Welcome back, {username}! Ready to get started with the latest tech podcasts?")
