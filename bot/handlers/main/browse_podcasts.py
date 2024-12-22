@@ -1,18 +1,17 @@
-
-
 async def browse_podcasts(update, context):
     hard_disk = context.bot_data['hard_disk']
-    
     podcasts_ref = hard_disk.collection('podcasts')
     podcasts = podcasts_ref.stream()
     
-    if not podcasts:
+    podcasts_list = list(podcasts)
+
+    if not podcasts_list:
         await update.message.reply_text("🎙️ No podcasts available yet. Stay tuned!")
         return
 
-    for podcast in podcasts:
+    for podcast in podcasts_list:
         data = podcast.to_dict()
-        print(data)
+        print("Podcast Data:", data)
         await update.message.reply_text(
             f"🎙️ **{data['title']}**\n"
             f"_By {data['creator']}_\n\n"
