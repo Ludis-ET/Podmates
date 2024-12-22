@@ -1,8 +1,7 @@
-from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import CallbackContext
-from config import OFFICIAL_WEBSITE
+from telegram import ReplyKeyboardMarkup
 
-async def start(update: Update, context: CallbackContext):
+
+async def start(update, context):
     hard_disk = context.bot_data['hard_disk']
 
     user = update.effective_user
@@ -16,7 +15,6 @@ async def start(update: Update, context: CallbackContext):
 
     image_url = 'https://i.ibb.co/MGVz6t1/1-1.jpg'
 
-    # Main keyboard buttons
     keyboard_buttons = [
         ['🎧 Browse Podcasts', '⭐ My Ratings'],
         ['📚 Create a Podcast', '📜 My Subscriptions'],
